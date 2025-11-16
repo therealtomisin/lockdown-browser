@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lockdown Browser</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #1e1e1e;
+        color: #ffffff;
+        overflow: hidden;
+        height: 100vh;
+      }
+
+      .lockdown-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+        background: #2d2d2d;
+        border-bottom: 2px solid #444;
+      }
+
+      .timer {
+        font-size: 14px;
+        font-weight: bold;
+        min-width: 150px;
+      }
+
+      .url-bar {
+        display: flex;
+        flex: 1;
+        max-width: 600px;
+        margin: 0 20px;
+      }
+
+      #urlInput {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #555;
+        border-radius: 4px 0 0 4px;
+        background: #1a1a1a;
+        color: #fff;
+        font-size: 14px;
+      }
+
+      #goButton {
+        padding: 8px 20px;
+        background: #007acc;
+        color: white;
+        border: none;
+        border-radius: 0 4px 4px 0;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      #goButton:hover {
+        background: #005a9e;
+      }
+
+      .status {
+        font-size: 14px;
+        color: #ff4444;
+        min-width: 100px;
+        text-align: right;
+      }
+
+      /* .browser-content {
+        flex: 1;
+        background: white;
+        display: flex;
+        flex-direction: column;
+      } */
+
+      .browser-content {
+        flex: 1;
+        position: relative;
+      }
+
+      /* Welcome Message Styles */
+      .welcome-message {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: #2d2d2d;
+        color: #ccc;
+        text-align: center;
+        padding: 40px;
+      }
+
+      .welcome-message h2 {
+        margin-bottom: 20px;
+        color: #fff;
+        font-size: 28px;
+      }
+
+      .welcome-message p {
+        margin-bottom: 30px;
+        font-size: 16px;
+        max-width: 600px;
+        line-height: 1.5;
+      }
+
+      .whitelist-sites {
+        margin-top: 20px;
+        font-size: 14px;
+        background: #3d3d3d;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 500px;
+      }
+
+      .whitelist-sites p {
+        margin-bottom: 10px;
+        font-weight: bold;
+        color: #fff;
+      }
+
+      .whitelist-sites ul {
+        list-style: none;
+        margin-top: 10px;
+      }
+
+      .whitelist-sites li {
+        margin: 8px 0;
+        color: #007acc;
+        padding: 5px 10px;
+        background: #2d2d2d;
+        border-radius: 4px;
+        font-family: monospace;
+      }
+
+      .security-info {
+        margin-top: 30px;
+        font-size: 14px;
+        background: #3d3d3d;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 500px;
+      }
+
+      .security-info p {
+        margin-bottom: 10px;
+      }
+
+      .security-info ul {
+        list-style: none;
+        margin: 15px 0;
+      }
+
+      .security-info li {
+        margin: 8px 0;
+        padding: 5px 0;
+        color: #ccc;
+      }
+
+      .security-info em {
+        color: #ffaa00;
+        font-size: 12px;
+      }
+
+      /* webview {
+        width: 100%;
+        height: 100%;
+        display: none;
+      } */
+
+      webview {
+        flex: 1;
+        width: 100%;
+        height: 100%;
+        display: none;
+        position: relative;
+        z-index: 1;
+      }
+
+      .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .message-box {
+        background: #2d2d2d;
+        padding: 40px;
+        border-radius: 8px;
+        text-align: center;
+        border: 2px solid #ff4444;
+        max-width: 500px;
+      }
+
+      .session-end {
+        border-color: #44ff44;
+      }
+
+      button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background: #007acc;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      button:hover {
+        background: #005a9e;
+      }
+
+      /* Toast notification for blocked shortcuts */
+      .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #ff4444;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 4px;
+        z-index: 1001;
+        display: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      /* DEBUG PANEL */
+      .debug-panel {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #00ff00;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+        z-index: 10000;
+        max-width: 300px;
+      }
+
+      .debug-status {
+        margin: 2px 0;
+      }
+
+      /* Loading indicator */
+      .loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 5px;
+        z-index: 10000;
+        display: none;
+      }
+
+      /* Navigation Controls */
+      .nav-controls {
+        display: flex;
+        margin-right: 15px;
+      }
+
+      .nav-controls button {
+        background: #555;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        margin: 0 2px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-top: 0;
+      }
+
+      .nav-controls button:hover:not(:disabled) {
+        background: #007acc;
+      }
+
+      .nav-controls button:disabled {
+        background: #333;
+        color: #777;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading Indicator -->
+    <div class="loading" id="loadingIndicator">Loading...</div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debugPanel">
+      <div class="debug-status" id="debugStatus">Ready</div>
+      <div class="debug-status" id="debugUrl">URL: None</div>
+      <div class="debug-status" id="debugWebview">Webview: Not loaded</div>
+    </div>
+
+    <div class="lockdown-container">
+      <div class="header">
+        <div class="timer">
+          Time Remaining: <span id="timeRemaining">10:00</span>
+        </div>
+
+        <!-- Navigation Controls -->
+        <div class="nav-controls">
+          <button id="backButton" title="Back">←</button>
+          <button id="homeButton" title="Home">🏠</button>
+        </div>
+
+        <div class="url-bar">
+          <input
+            type="text"
+            id="urlInput"
+            placeholder="Enter https://www.ixl.com or https://www.khanacademy.org"
+          />
+          <button id="goButton">Go</button>
+        </div>
+        <div class="status">🔒 Locked</div>
+      </div>
+
+      <div class="browser-content">
+        <!-- Welcome message shown by default -->
+        <div class="welcome-message" id="welcomeMessage">
+          <h2>Lockdown Browser</h2>
+          <p>Enter a whitelisted URL in the address bar above to begin.</p>
+          <div class="whitelist-sites">
+            <p>Allowed websites:</p>
+            <ul>
+              <li>https://www.ixl.com</li>
+              <li>https://www.khanacademy.org</li>
+              <li>https://*.khanacademy.org</li>
+              <li>https://*.ixl.com</li>
+            </ul>
+          </div>
+          <div class="security-info">
+            <p><strong>Security Features:</strong></p>
+            <ul>
+              <li>🔒 Full-screen lockdown mode</li>
+              <li>⏰ 10-minute session timer</li>
+              <li>🌐 Whitelist-only browsing</li>
+              <li>⌨️ Browser shortcuts disabled</li>
+            </ul>
+            <p>
+              <em
+                >Note: Some system-level shortcuts may still function for
+                security reasons.</em
+              >
+            </p>
+          </div>
+        </div>
+
+        <!-- Webview hidden by default -->
+        <webview
+          id="webview"
+          src="about:blank"
+          partition="persist:secure_session"
+        ></webview>
+      </div>
+    </div>
+
+    <!-- Toast notification for blocked shortcuts -->
+    <div class="toast" id="toast">
+      Shortcut blocked: <span id="toastShortcut"></span>
+    </div>
+
+    <!-- Blocked URL Overlay -->
+    <div class="overlay" id="blockedOverlay">
+      <div class="message-box">
+        <h2>⚠️ Navigation Blocked</h2>
+        <p>The URL <span id="blockedUrl"></span> is not whitelisted.</p>
+        <button onclick="hideBlockedOverlay()">Return to Safe Site</button>
+      </div>
+    </div>
+
+    <!-- Session End Overlay -->
+    <div class="overlay" id="sessionEndOverlay">
+      <div class="message-box session-end">
+        <h2>✅ Session Complete</h2>
+        <p>You may now close this window.</p>
+        <button onclick="closeApp()">Close Application</button>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
