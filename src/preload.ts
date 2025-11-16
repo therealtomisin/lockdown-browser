@@ -63,7 +63,7 @@ try {
 // Type declarations
 declare global {
   interface Window {
-    electronAPI: any; // Use any for now to avoid type issues
+    electronAPI: any; //To be changed
   }
 }
 

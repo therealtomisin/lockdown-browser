@@ -1,9 +1,7 @@
-// Global variables
 let currentUrl = "";
-let timerInterval = null;
+let timerInterval: NodeJS.Timeout | null = null;
 
-// Debug functions
-function updateDebug(message) {
+function updateDebug(message: string) {
   console.log("🔧 " + message);
   const debugStatus = document.getElementById("debugStatus");
   if (debugStatus) {
@@ -11,28 +9,27 @@ function updateDebug(message) {
   }
 }
 
-function updateDebugUrl(url) {
+function updateDebugUrl(url: string) {
   const debugUrl = document.getElementById("debugUrl");
   if (debugUrl) {
     debugUrl.textContent = "URL: " + url;
   }
 }
 
-function updateDebugWebview(status) {
+function updateDebugWebview(status: string) {
   const debugWebview = document.getElementById("debugWebview");
   if (debugWebview) {
     debugWebview.textContent = "Webview: " + status;
   }
 }
 
-function showLoading(show) {
-  const loading = document.getElementById("loadingIndicator");
+function showLoading(show: boolean) {
+  const loading = document.getElementById("loadingIndicator") as HTMLElement | null;
   if (loading) {
     loading.style.display = show ? "block" : "none";
   }
 }
 
-// Initialize the app
 async function initializeApp() {
   updateDebug("App starting...");
   setupEventListeners();
@@ -41,12 +38,10 @@ async function initializeApp() {
   updateDebug("App started successfully");
 }
 
-// Setup event listeners
 function setupEventListeners() {
   updateDebug("Setting up event listeners...");
 
-  // URL navigation
-  const urlInput = document.getElementById("urlInput");
+  const urlInput = document.getElementById("urlInput") as HTMLInputElement | null;
   const goButton = document.getElementById("goButton");
 
   if (goButton) {
@@ -57,7 +52,7 @@ function setupEventListeners() {
   }
 
   if (urlInput) {
-    urlInput.addEventListener("keypress", (e) => {
+    urlInput.addEventListener("keypress", (e: KeyboardEvent) => {
       if (e.key === "Enter") {
         updateDebug("Enter key pressed");
         handleUrlInput();
@@ -65,7 +60,6 @@ function setupEventListeners() {
     });
   }
 
-  // Navigation controls
   const backButton = document.getElementById("backButton");
   const homeButton = document.getElementById("homeButton");
 
@@ -77,9 +71,10 @@ function setupEventListeners() {
     homeButton.addEventListener("click", goHome);
   }
 
-  // Electron IPC events
+  const webview = document.getElementById("webview") as any;
+
   if (window.electronAPI) {
-    window.electronAPI.onSessionTimerUpdate((data) => {
+    window.electronAPI.onSessionTimerUpdate((data: any) => {
       updateTimerDisplay(data);
     });
 
@@ -87,7 +82,7 @@ function setupEventListeners() {
       showSessionEndOverlay();
     });
 
-    window.electronAPI.onNavigationBlocked((url) => {
+    window.electronAPI.onNavigationBlocked((url: string) => {
       updateDebug("Navigation blocked: " + url);
       showBlockedOverlay(url);
     });
@@ -96,7 +91,7 @@ function setupEventListeners() {
       showToast("App minimized to system tray. Click tray icon to restore.");
     });
 
-    window.electronAPI.onShortcutBlocked((shortcut) => {
+    window.electronAPI.onShortcutBlocked((shortcut: string) => {
       showToast(`Shortcut blocked: ${shortcut}`);
     });
 
@@ -104,16 +99,12 @@ function setupEventListeners() {
       showToast("Admin exit requested - session will continue for security");
     });
 
-    window.electronAPI.onNewWindowRequest((url) => {
+    window.electronAPI.onNewWindowRequest((url: string) => {
       updateDebug("New window request: " + url);
       navigateToUrl(url);
     });
-  } else {
-    updateDebug("WARNING: electronAPI not available");
   }
 
-  // Webview events
-  const webview = document.getElementById("webview");
   if (webview) {
     webview.addEventListener("dom-ready", () => {
       updateDebugWebview("DOM Ready");
@@ -129,26 +120,28 @@ function setupEventListeners() {
     webview.addEventListener("did-finish-load", () => {
       updateDebugWebview("Load Complete");
       showLoading(false);
-      showToast("site visited")
-
-      document.getElementById("welcomeMessage").style.display = "none";
-      webview.style.display = "block";isJsxCallLike.com
+      showToast("site visited");
+      const welcomeMessage = document.getElementById("welcomeMessage") as HTMLElement;
+      if (welcomeMessage) welcomeMessage.style.display = "none";
+      webview.style.display = "block";
     });
 
-    webview.addEventListener("did-navigate", (event) => {
+    webview.addEventListener("did-navigate", (event: any) => {
       updateDebug("Navigated to: " + event.url);
       currentUrl = event.url;
-      document.getElementById("urlInput").value = event.url;
+      const urlInputEl = document.getElementById("urlInput") as HTMLInputElement;
+      urlInputEl.value = event.url;
       updateNavButtons();
     });
 
-    webview.addEventListener("did-navigate-in-page", (event) => {
+    webview.addEventListener("did-navigate-in-page", (event: any) => {
       currentUrl = event.url;
-      document.getElementById("urlInput").value = event.url;
+      const urlInputEl = document.getElementById("urlInput") as HTMLInputElement;
+      urlInputEl.value = event.url;
       updateNavButtons();
     });
 
-    webview.addEventListener("did-fail-load", (event) => {
+    webview.addEventListener("did-fail-load", (event: any) => {
       updateDebugWebview("Load FAILED: " + event.errorDescription);
       showLoading(false);
       showToast("Failed to load page: " + event.errorDescription);
@@ -158,10 +151,8 @@ function setupEventListeners() {
   updateDebug("Event listeners setup complete");
 }
 
-// Handle URL input
-
 async function handleUrlInput() {
-  const urlInput = document.getElementById("urlInput");
+  const urlInput = document.getElementById("urlInput") as HTMLInputElement;
   let url = urlInput.value.trim();
 
   updateDebug("Processing URL: " + url);
@@ -171,15 +162,11 @@ async function handleUrlInput() {
     return;
   }
 
-  // Add https:// if missing
   if (!url.startsWith("http://") && !url.startsWith("https://")) {
     url = "https://" + url;
     updateDebug("Added https://, URL: " + url);
   }
 
-  updateDebug("Validating URL...");
-
-  // Test if electronAPI is working
   if (!window.electronAPI || !window.electronAPI.validateUrl) {
     updateDebug("ERROR: electronAPI not available");
     showToast("Error: App not properly initialized");
@@ -193,54 +180,48 @@ async function handleUrlInput() {
 
     if (isValid) {
       updateDebug("URL valid, navigating directly");
-      // Navigate directly without further validation
       navigateToUrlDirect(url);
     } else {
       updateDebug("URL not in whitelist");
       showBlockedOverlay(url);
     }
-  } catch (error) {
+  } catch (error: any) {
     updateDebug("Validation error: " + error.message);
-    // If validation fails, try direct navigation for testing
     updateDebug("Trying direct navigation as fallback...");
     navigateToUrlDirect(url);
   }
 }
 
-// Direct navigation without validation (for testing)
-function navigateToUrlDirect(url) {
+function navigateToUrlDirect(url: string) {
   updateDebug("Direct navigation to: " + url);
 
-  const webview = document.getElementById("webview");
-  const welcomeMessage = document.getElementById("welcomeMessage");
+  const webview = document.getElementById("webview") as any;
+  const welcomeMessage = document.getElementById("welcomeMessage") as HTMLElement | null;
 
   if (!webview) {
     updateDebug("ERROR: Webview not found!");
     return;
   }
 
-  // Show loading
   showLoading(true);
 
-  // Hide welcome, show webview
   if (welcomeMessage) welcomeMessage.style.display = "none";
   webview.style.display = "block";
 
-  // Navigate directly
   updateDebug("Setting webview src...");
   webview.src = url;
 
-  // Update URL input
-  document.getElementById("urlInput").value = url;
+  const urlInput = document.getElementById("urlInput") as HTMLInputElement;
+  urlInput.value = url;
+
   updateDebug("Navigation command sent");
 }
 
-// Navigate to URL using webview directly
-function navigateToUrl(url) {
+function navigateToUrl(url: string) {
   updateDebug("Navigating to: " + url);
   updateDebugUrl(url);
 
-  const webview = document.getElementById("webview");
+  const webview = document.getElementById("webview") as any;
 
   if (!webview) {
     updateDebug("ERROR: Webview not found!");
@@ -248,49 +229,52 @@ function navigateToUrl(url) {
     return;
   }
 
-  // Use webview for navigation
   webview.src = url;
   currentUrl = url;
   showToast(url);
 
-  // Update URL input
-  document.getElementById("urlInput").value = url;
+  const urlInput = document.getElementById("urlInput") as HTMLInputElement;
+  urlInput.value = url;
 
-  // Show webview and hide welcome message
   showWebview();
 }
 
-// Show webview and hide welcome message
 function showWebview() {
-  document.getElementById("welcomeMessage").style.display = "none";
-  document.getElementById("webview").style.display = "block";
+  const welcomeMessage = document.getElementById("welcomeMessage") as HTMLElement;
+  const webview = document.getElementById("webview") as HTMLElement;
+
+  welcomeMessage.style.display = "none";
+  webview.style.display = "block";
   updateDebug("Webview shown");
   showToast("web view loaded");
 }
 
-// Show welcome message and hide webview
 function showWelcomeMessage() {
-  document.getElementById("welcomeMessage").style.display = "flex";
-  document.getElementById("webview").style.display = "none";
-  document.getElementById("urlInput").value = "";
-  document.getElementById("urlInput").focus();
+  const welcomeMessage = document.getElementById("welcomeMessage") as HTMLElement;
+  const webview = document.getElementById("webview") as HTMLElement;
+
+  welcomeMessage.style.display = "flex";
+  webview.style.display = "none";
+
+  const urlInput = document.getElementById("urlInput") as HTMLInputElement;
+  urlInput.value = "";
+  urlInput.focus();
+
   updateNavButtons();
   updateDebug("Welcome message shown");
 }
 
-// Update navigation buttons
 function updateNavButtons() {
-  const webview = document.getElementById("webview");
-  const backButton = document.getElementById("backButton");
+  const webview = document.getElementById("webview") as any;
+  const backButton = document.getElementById("backButton") as HTMLButtonElement | null;
 
   if (backButton && webview) {
     backButton.disabled = !webview.canGoBack();
   }
 }
 
-// Navigation functions
 function goBack() {
-  const webview = document.getElementById("webview");
+  const webview = document.getElementById("webview") as any;
   if (webview.canGoBack()) {
     webview.goBack();
     updateDebug("Going back");
@@ -302,19 +286,17 @@ function goHome() {
   showWelcomeMessage();
 }
 
-// Update timer display
-function updateTimerDisplay(data) {
-  const timeRemaining = document.getElementById("timeRemaining");
+function updateTimerDisplay(data: any) {
+  const timeRemaining = document.getElementById("timeRemaining") as HTMLElement;
   const remaining = data.remaining || Math.max(0, data.endTime - Date.now());
 
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);
 
-  timeRemaining.textContent = `${minutes.toString().padStart(2, "0")}:${seconds
+  timeRemaining.textContent = `${minutes
     .toString()
-    .padStart(2, "0")}`;
+    .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 
-  // Color coding
   if (remaining < 60000) {
     timeRemaining.style.color = "#ff4444";
   } else if (remaining < 300000) {
@@ -324,15 +306,12 @@ function updateTimerDisplay(data) {
   }
 }
 
-// Start timer updates
 function startTimerUpdates() {
   updateDebug("Timer updates started");
-  // Timer updates come from main process via IPC
 }
 
-// Show toast notification
-function showToast(message) {
-  const toast = document.getElementById("toast");
+function showToast(message: string) {
+  const toast = document.getElementById("toast") as HTMLElement | null;
   if (toast) {
     toast.textContent = message;
     toast.style.display = "block";
@@ -344,10 +323,9 @@ function showToast(message) {
   updateDebug("Toast: " + message);
 }
 
-// Show blocked URL overlay
-function showBlockedOverlay(url) {
-  const overlay = document.getElementById("blockedOverlay");
-  const blockedUrl = document.getElementById("blockedUrl");
+function showBlockedOverlay(url: string) {
+  const overlay = document.getElementById("blockedOverlay") as HTMLElement | null;
+  const blockedUrl = document.getElementById("blockedUrl") as HTMLElement | null;
 
   if (overlay && blockedUrl) {
     blockedUrl.textContent = url;
@@ -355,18 +333,16 @@ function showBlockedOverlay(url) {
   }
 }
 
-// Hide blocked URL overlay
 function hideBlockedOverlay() {
-  const overlay = document.getElementById("blockedOverlay");
+  const overlay = document.getElementById("blockedOverlay") as HTMLElement | null;
   if (overlay) {
     overlay.style.display = "none";
   }
   showWelcomeMessage();
 }
 
-// Show session end overlay
 function showSessionEndOverlay() {
-  const overlay = document.getElementById("sessionEndOverlay");
+  const overlay = document.getElementById("sessionEndOverlay") as HTMLElement | null;
   if (overlay) {
     overlay.style.display = "flex";
   }
@@ -379,10 +355,8 @@ function showSessionEndOverlay() {
   updateDebug("Session ended");
 }
 
-// Close application
 function closeApp() {
   window.close();
 }
 
-// Initialize when DOM is loaded
 document.addEventListener("DOMContentLoaded", initializeApp);
