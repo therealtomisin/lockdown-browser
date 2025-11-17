@@ -149,35 +149,35 @@ function endSession(): void {
     sessionEndTimeout = null;
   }
 
-  if (mainWindow) {
-    mainWindow.closable = true;
-    mainWindow.setAlwaysOnTop(false);
-    mainWindow.setFullScreen(false);
-    mainWindow.setSkipTaskbar(false);
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    console.log("⚠️ endSession called but window is already destroyed");
+    return;
+  }
 
-    // Update tray menu when session ends
-    if (tray) {
-      tray.setToolTip("Lockdown Browser - Session Complete");
-      const contextMenu = Menu.buildFromTemplate([
+  mainWindow.closable = true;
+  mainWindow.setAlwaysOnTop(false);
+  mainWindow.setFullScreen(false);
+  mainWindow.setSkipTaskbar(false);
+
+  if (tray) {
+    tray.setToolTip("Lockdown Browser - Session Complete");
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
         {
           label: "Show Lockdown Browser",
           click: () => {
-            if (mainWindow) {
+            if (mainWindow && !mainWindow.isDestroyed()) {
               mainWindow.show();
               mainWindow.focus();
             }
           },
         },
-        {
-          label: "Exit",
-          click: () => {
-            app.quit();
-          },
-        },
-      ]);
-      tray.setContextMenu(contextMenu);
-    }
+        { label: "Exit", click: () => app.quit() },
+      ])
+    );
+  }
 
+  if (!mainWindow.isDestroyed()) {
     mainWindow.webContents.send("session-ended");
   }
 
@@ -296,7 +296,7 @@ async function createWindow(): Promise<void> {
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
       webSecurity: true,
-      webviewTag: true
+      webviewTag: true,
     },
   });
 
@@ -422,7 +422,9 @@ function setupApp(): void {
   });
 
   app.on("before-quit", () => {
-    endSession();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      endSession();
+    }
   });
 
   // Handle second instance
